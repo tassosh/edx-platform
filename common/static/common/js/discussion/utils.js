@@ -486,7 +486,7 @@
         };
 
         DiscussionUtil.typesetMathJax = function(element) {
-            if (typeof MathJax !== 'undefined' && MathJax !== null) {
+            if (typeof MathJax !== 'undefined' && MathJax !== null && typeof element[0] !== 'undefined') {
                 MathJax.Hub.Queue(['Typeset', MathJax.Hub, element[0]]);
             }
         };
