@@ -39,8 +39,10 @@ from openedx.core.djangoapps.programs.utils import ProgramDataExtender, ProgramP
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
 from openedx.core.djangoapps.util.maintenance_banner import add_maintenance_banner
 from openedx.core.djangoapps.waffle_utils import WaffleFlag, WaffleFlagNamespace
+from openedx.core.djangoapps.user_api.accounts.utils import is_secondary_email_feature_enabled
 from openedx.core.djangolib.markup import HTML, Text
 from openedx.features.enterprise_support.api import get_dashboard_consent_notification
+from openedx.features.enterprise_support.utils import is_enterprise_learner
 from openedx.features.journals.api import journals_enabled
 from shoppingcart.api import order_history
 from shoppingcart.models import CourseRegistrationCode, DonationConfiguration
@@ -629,6 +631,21 @@ def student_dashboard(request):
 
     enterprise_message = get_dashboard_consent_notification(request, user, course_enrollments)
 
+    recovery_email_message = None
+
+    # Update the tag info with 'enterprise_learner' if the user belongs to an enterprise customer.
+    is_enterprise_learner_data = is_enterprise_learner(user=request.user)
+    does_secondary_email_exist = bool(user.profile and user.profile.secondary_email)
+    if is_enterprise_learner_data and is_secondary_email_feature_enabled() and not does_secondary_email_exist:
+        recovery_email_message = Text(_("Add a recovery email to retain access when single-sign on is not available. "
+                                        "Go to {link_start}your Profile{link_end}.")).format(
+            link_start=HTML("<a target='_blank' href='{account_setting_page}'>").format(
+                account_setting_page=reverse('account_settings'),
+            ),
+            link_end=HTML("</a>")
+        )
+
+
     # Disable lookup of Enterprise consent_required_course due to ENT-727
     # Will re-enable after fixing WL-1315
     consent_required_courses = set()
@@ -832,6 +849,7 @@ def student_dashboard(request):
         'display_sidebar_account_activation_message': not(user.is_active or hide_dashboard_courses_until_activated),
         'display_dashboard_courses': (user.is_active or not hide_dashboard_courses_until_activated),
         'empty_dashboard_message': empty_dashboard_message,
+        'recovery_email_message': recovery_email_message
     }
 
     if ecommerce_service.is_enabled(request.user):
