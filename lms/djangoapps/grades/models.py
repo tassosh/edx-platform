@@ -25,6 +25,7 @@ from opaque_keys.edx.keys import CourseKey, UsageKey
 from coursewarehistoryextended.fields import UnsignedBigIntAutoField, UnsignedBigIntOneToOneField
 from lms.djangoapps.grades import events
 from openedx.core.lib.cache_utils import get_cache
+from util.query import use_read_replica_if_available
 
 
 log = logging.getLogger(__name__)
@@ -230,9 +231,11 @@ class VisibleBlocks(models.Model):
         Returns a dictionary mapping hashes of these block records to the
         block record objects.
         """
-        grades_with_blocks = PersistentSubsectionGrade.objects.select_related('visible_blocks').filter(
-            user_id=user_id,
-            course_id=course_key,
+        grades_with_blocks = use_read_replica_if_available(
+            PersistentSubsectionGrade.objects.select_related('visible_blocks').filter(
+                user_id=user_id,
+                course_id=course_key,
+            )
         )
         prefetched = {grade.visible_blocks.hashed: grade.visible_blocks for grade in grades_with_blocks}
         get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(user_id, course_key)] = prefetched
@@ -349,9 +352,11 @@ class PersistentSubsectionGrade(TimeStampedModel):
         cache_key = cls._cache_key(course_key)
         get_cache(cls._CACHE_NAMESPACE)[cache_key] = defaultdict(list)
         cached_grades = get_cache(cls._CACHE_NAMESPACE)[cache_key]
-        queryset = cls.objects.select_related('visible_blocks', 'override').filter(
-            user_id__in=[user.id for user in users],
-            course_id=course_key,
+        queryset = use_read_replica_if_available(
+            cls._base_queryset().filter(
+                user_id__in=[user.id for user in users],
+                course_id=course_key,
+            )
         )
         for record in queryset:
             cached_grades[record.user_id].append(record)
@@ -374,7 +379,7 @@ class PersistentSubsectionGrade(TimeStampedModel):
 
         Raises PersistentSubsectionGrade.DoesNotExist if applicable
         """
-        return cls.objects.select_related('visible_blocks', 'override').get(
+        return cls._base_queryset().get(
             user_id=user_id,
             course_id=usage_key.course_key,  # course_id is included to take advantage of db indexes
             usage_key=usage_key,
@@ -399,10 +404,20 @@ class PersistentSubsectionGrade(TimeStampedModel):
                 return []
         except KeyError:
             # subsection grades were not prefetched for the course, so get them from the DB
-            return cls.objects.select_related('visible_blocks', 'override').filter(
-                user_id=user_id,
-                course_id=course_key,
+            return use_read_replica_if_available(
+                cls._base_queryset().filter(
+                    user_id=user_id,
+                    course_id=course_key,
+                )
             )
+
+    @classmethod
+    def _base_queryset(cls):
+        """
+        A base queryset to use for querying PersistentSubsectionGrades.  Selects
+        any related VisibleBlocks and PersistentSubsectionGradeOverride objects.
+        """
+        return cls.objects.select_related('visible_blocks', 'override')
 
     @classmethod
     def update_or_create_grade(cls, **params):
@@ -559,11 +574,13 @@ class PersistentCourseGrade(TimeStampedModel):
         """
         Prefetches grades for the given users for the given course.
         """
-        get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(course_id)] = {
-            grade.user_id: grade
-            for grade in
-            cls.objects.filter(user_id__in=[user.id for user in users], course_id=course_id)
-        }
+        queryset = use_read_replica_if_available(
+            cls.objects.filter(
+                user_id__in=[user.id for user in users],
+                course_id=course_id
+            )
+        )
+        get_cache(cls._CACHE_NAMESPACE)[cls._cache_key(course_id)] = {grade.user_id: grade for grade in queryset}
 
     @classmethod
     def clear_prefetched_data(cls, course_key):
@@ -667,10 +684,11 @@ class PersistentSubsectionGradeOverride(models.Model):
 
     @classmethod
     def prefetch(cls, user_id, course_key):
-        get_cache(cls._CACHE_NAMESPACE)[(user_id, str(course_key))] = {
-            override.grade.usage_key: override
-            for override in
+        queryset = use_read_replica_if_available(
             cls.objects.filter(grade__user_id=user_id, grade__course_id=course_key)
+        )
+        get_cache(cls._CACHE_NAMESPACE)[(user_id, str(course_key))] = {
+            override.grade.usage_key: override for override in queryset
         }
 
     @classmethod
