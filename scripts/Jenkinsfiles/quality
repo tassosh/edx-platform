@@ -33,7 +33,7 @@ pipeline {
                         TEST_SUITE = "quality"
                         SHARD = 1
                         SHALLOW_CLONE = true
-                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}']""
+                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}']"
                     }
                     steps {
                         script {
