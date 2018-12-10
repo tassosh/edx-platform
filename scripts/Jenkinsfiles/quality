@@ -1,8 +1,8 @@
-def runQualityTests() {
+def runQualityTests(shallow_clone) {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}']],
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
-            noTags: true, shallow: true ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
+            noTags: true, shallow: shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
             refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
             url: 'git@github.com:edx/edx-platform.git']]]
         console_output = sh(returnStdout: true, script: 'bash scripts/all-tests.sh').trim()
@@ -32,7 +32,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 1
-                        SHALLOW_CLONE = true
                         GITHUB_BRANCHES = '${ghprbActualCommit}'
                     }
                     steps {
@@ -43,7 +42,7 @@ pipeline {
                     post {
                         always {
                             script {
-                                qualityTestCleanup()
+                                qualityTestCleanup(true)
                             }
                         }
                     }
@@ -53,7 +52,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 2
-                        SHALLOW_CLONE = true
                         GITHUB_BRANCHES = '${ghprbActualCommit}'
                     }
                     steps {
@@ -64,7 +62,7 @@ pipeline {
                     post {
                         always {
                             script {
-                                qualityTestCleanup()
+                                qualityTestCleanup(true)
                             }
                         }
                     }
@@ -74,7 +72,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 3
-                        SHALLOW_CLONE = true
                         GITHUB_BRANCHES = '${ghprbActualCommit}'
                     }
                     steps {
@@ -85,7 +82,7 @@ pipeline {
                     post {
                         always {
                             script {
-                                qualityTestCleanup()
+                                qualityTestCleanup(true)
                             }
                         }
                     }
@@ -95,7 +92,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 4
-                        SHALLOW_CLONE = false
                         GITHUB_BRANCHES = '${ghprbActualCommit}|master'
                     }
                     steps {
@@ -106,7 +102,7 @@ pipeline {
                     post {
                         always {
                             script {
-                                qualityTestCleanup()
+                                qualityTestCleanup(false)
                             }
                         }
                     }
