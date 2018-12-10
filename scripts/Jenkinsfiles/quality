@@ -1,6 +1,6 @@
 def runQualityTests(shallow_clone, branch_maps) {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
-        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: branches,
+        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: branch_maps,
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
             noTags: true, shallow: shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
             refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
@@ -51,7 +51,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 2
-                        GITHUB_BRANCHES = '${ghprbActualCommit}'
                     }
                     steps {
                         script {
@@ -71,7 +70,6 @@ pipeline {
                     environment {
                         TEST_SUITE = "quality"
                         SHARD = 3
-                        GITHUB_BRANCHES = '${ghprbActualCommit}'
                     }
                     steps {
                         script {
