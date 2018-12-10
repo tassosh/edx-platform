@@ -1,10 +1,28 @@
 def runQualityTests(git_shallow_clone, git_branch_maps) {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
+
+        // Determine git refspec, branch(es), and clone type
+        git_shallow_clone = true
+        if (env.ghprbActualCommit) {
+            if (env.SHARD == 4) {
+                git_branch_maps = [[name: '${ghprbActualCommit}'], [name: 'master']]
+            } else {
+                // shard 4 needs master and history of branches for xsslint
+                git_branch_maps = [[name: '${ghprbActualCommit}']]
+                git_shallow_clone = false
+            }
+            refspec = '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*'
+        } else {
+            git_branch_maps = [[name: 'master']]
+            refspec = '+refs/heads/master:refs/remotes/origin/master'
+        }
+
         checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: git_branch_maps,
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
             noTags: true, shallow: git_shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
-            refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
+            refspec: refspec,
             url: 'git@github.com:edx/edx-platform.git']]]
+
         console_output = sh(returnStdout: true, script: 'bash scripts/all-tests.sh').trim()
         dir('stdout') {
             writeFile file: "${TEST_SUITE}-${SHARD}-stdout.log", text: console_output
@@ -35,7 +53,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests(true, [[name: '${ghprbActualCommit}']])
+                            runQualityTests()
                         }
                     }
                     post {
@@ -54,7 +72,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests(true, [[name: '${ghprbActualCommit}']])
+                            runQualityTests()
                         }
                     }
                     post {
@@ -73,7 +91,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests(true, [[name: '${ghprbActualCommit}']])
+                            runQualityTests()
                         }
                     }
                     post {
@@ -92,7 +110,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests(false, [[name: '${ghprbActualCommit}'], [name: 'master']])
+                            runQualityTests()
                         }
                     }
                     post {
@@ -105,6 +123,9 @@ pipeline {
                 }
             }
         }
+        when {
+             expression { env.ghprbActualCommit != null }
+        }
         stage('Diff quality') {
             environment {
                 TARGET_BRANCH = "origin/master"
@@ -112,8 +133,8 @@ pipeline {
             steps {
                 sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
                     checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}']],
-                        doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption',
-                        honorRefspec: true, noTags: true, shallow: true]], submoduleCfg: [],
+                        doGenerateSubmoduleConfigurations: false, extensions:  [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'scripts']]],
+                        [$class: 'CloneOption', honorRefspec: true, noTags: true, shallow: true]], submoduleCfg: [],
                         userRemoteConfigs: [[credentialsId: 'jenkins-worker',
                         refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
                         url: 'git@github.com:edx/edx-platform.git']]]
@@ -121,12 +142,37 @@ pipeline {
                     unstash 'quality-2-reports'
                     unstash 'quality-3-reports'
                     unstash 'quality-4-reports'
-                    sh "ls"
                     sh "./scripts/jenkins-quality-diff.sh"
                 }
             }
             post {
                 always {
+                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
+                        reportDir: 'reports/metrics',
+                        reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
+                        reportName: 'Quality Report', reportTitles: ''])
+                }
+            }
+        }
+        stage('Quality Reports') {
+            steps {
+                if (env.ghprbActualCommit) {
+                    git_branch_maps = [[name: '${ghprbActualCommit}']]
+                    refspec = '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*'
+                } else {
+                    git_branch_maps = [[name: 'master']]
+                    refspec = '+refs/heads/master:refs/remotes/origin/master'
+                }
+                sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: git_branch_maps,
+                        doGenerateSubmoduleConfigurations: false, extensions:  [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'scripts']]],
+                        [$class: 'CloneOption', honorRefspec: true, noTags: true, shallow: true]], submoduleCfg: [],
+                        userRemoteConfigs: [[credentialsId: 'jenkins-worker',
+                        refspec: refspec, url: 'git@github.com:edx/edx-platform.git']]]
+                        unstash 'quality-1-reports'
+                        unstash 'quality-2-reports'
+                        unstash 'quality-3-reports'
+                        unstash 'quality-4-reports'
                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
                         reportDir: 'reports/metrics',
                         reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
