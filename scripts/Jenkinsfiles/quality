@@ -1,6 +1,7 @@
 def runQualityTests(shallow_clone) {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
-        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}']],
+        testing = [name: '${ghprbActualCommit}']
+        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [testing],
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
             noTags: true, shallow: shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
             refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
@@ -36,13 +37,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests()
+                            runQualityTests(true)
                         }
                     }
                     post {
                         always {
                             script {
-                                qualityTestCleanup(true)
+                                qualityTestCleanup()
                             }
                         }
                     }
@@ -56,13 +57,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests()
+                            runQualityTests(true)
                         }
                     }
                     post {
                         always {
                             script {
-                                qualityTestCleanup(true)
+                                qualityTestCleanup()
                             }
                         }
                     }
@@ -76,13 +77,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests()
+                            runQualityTests(true)
                         }
                     }
                     post {
                         always {
                             script {
-                                qualityTestCleanup(true)
+                                qualityTestCleanup()
                             }
                         }
                     }
@@ -96,13 +97,13 @@ pipeline {
                     }
                     steps {
                         script {
-                            runQualityTests()
+                            runQualityTests(false)
                         }
                     }
                     post {
                         always {
                             script {
-                                qualityTestCleanup(false)
+                                qualityTestCleanup()
                             }
                         }
                     }
