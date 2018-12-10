@@ -1,6 +1,6 @@
 def runQualityTests() {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
-        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: ${GITHUB_BRANCHES},
+        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [${GITHUB_BRANCHES}],
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
             noTags: true, shallow: ${SHALLOW_CLONE}]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
             refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
@@ -33,7 +33,7 @@ pipeline {
                         TEST_SUITE = "quality"
                         SHARD = 1
                         SHALLOW_CLONE = true
-                        GITHUB_BRANCHES = [[name: '${ghprbActualCommit}']]
+                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}']""
                     }
                     steps {
                         script {
@@ -54,7 +54,7 @@ pipeline {
                         TEST_SUITE = "quality"
                         SHARD = 2
                         SHALLOW_CLONE = true
-                        GITHUB_BRANCHES = [[name: '${ghprbActualCommit}']]
+                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}']"
                     }
                     steps {
                         script {
@@ -75,7 +75,7 @@ pipeline {
                         TEST_SUITE = "quality"
                         SHARD = 3
                         SHALLOW_CLONE = true
-                        GITHUB_BRANCHES = [[name: '${ghprbActualCommit}']]
+                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}']"
                     }
                     steps {
                         script {
@@ -96,7 +96,7 @@ pipeline {
                         TEST_SUITE = "quality"
                         SHARD = 4
                         SHALLOW_CLONE = false
-                        GITHUB_BRANCHES = [[name: '${ghprbActualCommit}'], [name: 'master']]
+                        GITHUB_BRANCHES = "[name: '${ghprbActualCommit}'], [name: 'master']"
                     }
                     steps {
                         script {
