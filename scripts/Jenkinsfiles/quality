@@ -1,4 +1,4 @@
-def runQualityTests(git_shallow_clone, git_branch_maps) {
+def runQualityTests() {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
 
         // Determine git refspec, branch(es), and clone type
