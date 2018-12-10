@@ -1,8 +1,8 @@
-def runQualityTests(shallow_clone, branch_maps) {
+def runQualityTests(git_shallow_clone, git_branch_maps) {
     sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
-        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: branch_maps,
+        checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: git_branch_maps,
             doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', honorRefspec: true,
-            noTags: true, shallow: shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
+            noTags: true, shallow: git_shallow_clone ]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'jenkins-worker',
             refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
             url: 'git@github.com:edx/edx-platform.git']]]
         console_output = sh(returnStdout: true, script: 'bash scripts/all-tests.sh').trim()
@@ -121,6 +121,7 @@ pipeline {
                     unstash 'quality-2-reports'
                     unstash 'quality-3-reports'
                     unstash 'quality-4-reports'
+                    sh "ls"
                     sh "./scripts/jenkins-quality-diff.sh"
                 }
             }
@@ -130,11 +131,8 @@ pipeline {
                         reportDir: 'reports/metrics',
                         reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
                         reportName: 'Quality Report', reportTitles: ''])
-                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'reports/diff_quality',
-                        reportFiles: 'diff_quality_pylint.html, diff_quality_eslint.html', reportName: 'Diff Quality Report', reportTitles: ''])
                 }
             }
         }
     }
-
 }
