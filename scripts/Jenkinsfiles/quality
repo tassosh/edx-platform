@@ -128,9 +128,20 @@ pipeline {
                  expression { ghprbActualCommit != null }
             }
             environment {
-                TARGET_BRANCH = "${ghprbTargetBranch}"
+                TARGET_BRANCH = ghprbTargetBranch
             }
             steps {
+            sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
+                checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}'], [name: '${ghprbTargetBranch}']],
+                    doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption',
+                    honorRefspec: true, noTags: true, shallow: true]], submoduleCfg: [],
+                    userRemoteConfigs: [[credentialsId: 'jenkins-worker',
+                    refspec: '+refs/heads/master:refs/remotes/origin/master +refs/pull/${ghprbPullId}/*:refs/remotes/origin/pr/${ghprbPullId}/*',
+                    url: 'git@github.com:edx/edx-platform.git']]]
+                unstash 'quality-1-reports'
+                unstash 'quality-2-reports'
+                unstash 'quality-3-reports'
+                unstash 'quality-4-reports'
                 sh "./scripts/jenkins-quality-diff.sh"
             }
             post {
@@ -145,6 +156,10 @@ pipeline {
         }
         stage('Quality Reports') {
             steps {
+                    unstash 'quality-1-reports'
+                    unstash 'quality-2-reports'
+                    unstash 'quality-3-reports'
+                    unstash 'quality-4-reports'
                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
                         reportDir: 'reports/metrics',
                         reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
