@@ -129,7 +129,7 @@ pipeline {
             }
             steps {
                 sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
-                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}'], [name: '${ghprbTargetBranch}']],
+                    checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: '${ghprbActualCommit}']],
                         doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption',
                         honorRefspec: true, noTags: true, shallow: true]], submoduleCfg: [],
                         userRemoteConfigs: [[credentialsId: 'jenkins-worker',
@@ -159,7 +159,7 @@ pipeline {
                     unstash 'quality-4-reports'
                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
                         reportDir: 'reports/metrics',
-                        reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
+                        reportFiles: 'pylint,pep8,python_complexity,xsscommitlint,xsslint,eslint',
                         reportName: 'Quality Report', reportTitles: '']
                     )
             }
