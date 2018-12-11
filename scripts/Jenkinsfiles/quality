@@ -23,16 +23,13 @@ def runQualityTests() {
             refspec: refspec,
             url: 'git@github.com:edx/edx-platform.git']]]
 
-        console_output = sh(returnStdout: true, script: 'bash scripts/all-tests.sh').trim()
-        dir('stdout') {
-            writeFile file: "${TEST_SUITE}-${SHARD}-stdout.log", text: console_output
-        }
-        stash includes: '**/reports/**/*.report, **/reports/**/*.log', name: "${TEST_SUITE}-${SHARD}-reports"
+        sh "bash scripts/all-tests.sh"
+        stash includes: 'reports/**/*.report, reports/**/*.log, edx-platform*/reports/**/*.report, edx-platform*/reports/**/*.log', name: "${TEST_SUITE}-${SHARD}-reports"
     }
 }
 
 def qualityTestCleanup() {
-    archiveArtifacts allowEmptyArchive: true, artifacts: '**/reports/**/*,test_root/log/**/*.log,stdout/*.log,*.log'
+    archiveArtifacts allowEmptyArchive: true, artifacts: '**/reports/**/*,test_root/log/**/*.log,*.log'
     junit '**/reports/quality.xml, reports/quality_junitxml/*.xml'
 }
 
@@ -147,6 +144,7 @@ pipeline {
             }
             post {
                 always {
+                    qualityTestCleanup()
                     publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
                         reportDir: 'reports/metrics',
                         reportFiles: 'pylint/*view*/,pep8/*view*/,python_complexity/*view*/,xsscommitlint/*view*/,xsslint/*view*/,eslint/*view*/',
