@@ -125,7 +125,7 @@ pipeline {
         }
         stage('Diff quality') {
             when {
-                 expression { env.ghprbActualCommit != null }
+                 expression { ghprbActualCommit != null }
             }
             environment {
                 TARGET_BRANCH = "${ghprbTargetBranch}"
