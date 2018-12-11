@@ -20,12 +20,12 @@ CONTENT_TYPE_GATING_FLAG = WaffleFlag(
 )
 
 EXPERIMENT_ID = 11
-EXPERIMENT_DATA_HOLDBACK_KEY = 'holdback_{0}'
+EXPERIMENT_DATA_HOLDBACK_KEY = 'holdback'
 
 
 @receiver(ENROLL_STATUS_CHANGE)
 def set_value_for_content_type_gating_holdback(sender, event=None, user=None, **kwargs):  # pylint: disable=unused-argument
-    experiment_data_holdback_key = EXPERIMENT_DATA_HOLDBACK_KEY.format(user)
+    experiment_data_holdback_key = EXPERIMENT_DATA_HOLDBACK_KEY
     if event == EnrollStatusChange.enroll:
         user_holdback_data = ExperimentData.objects.filter(
             user=user,
