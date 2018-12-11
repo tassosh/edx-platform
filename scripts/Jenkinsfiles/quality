@@ -139,13 +139,14 @@ pipeline {
                     unstash 'quality-2-reports'
                     unstash 'quality-3-reports'
                     unstash 'quality-4-reports'
+                    sh "ls"
                     sh "./scripts/jenkins-quality-diff.sh"
                 }
             }
             post {
                 always {
                     qualityTestCleanup()
-                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'edx-platform/reports/diff_quality',
+                    publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true, reportDir: 'reports/diff_quality',
                         reportFiles: 'diff_quality_pylint.html, diff_quality_eslint.html', reportName: 'Diff Quality Report', reportTitles: ''])
                 }
             }
