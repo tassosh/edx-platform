@@ -24,7 +24,7 @@ def runQualityTests() {
             url: 'git@github.com:edx/edx-platform.git']]]
 
         sh "bash scripts/all-tests.sh"
-        stash includes: 'reports/**/*.report, reports/**/*.log, edx-platform*/reports/**/*.report, edx-platform*/reports/**/*.log', name: "${TEST_SUITE}-${SHARD}-reports"
+        stash includes: '**/reports/**/*.report, **/reports/**/*.log', name: "${TEST_SUITE}-${SHARD}-reports"
     }
 }
 
@@ -125,7 +125,7 @@ pipeline {
                  expression { ghprbActualCommit != null }
             }
             environment {
-                TARGET_BRANCH = "${ghprbTargetBranch}"
+                TARGET_BRANCH = "origin/master"
             }
             steps {
                 sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
