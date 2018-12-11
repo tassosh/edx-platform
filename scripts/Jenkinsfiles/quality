@@ -3,8 +3,8 @@ def runQualityTests() {
 
         // Determine git refspec, branch(es), and clone type
         git_shallow_clone = true
-        if ($ghprbActualCommit) {
-            if ($SHARD == "4") {
+        if (ghprbActualCommit) {
+            if (SHARD == "4") {
                 git_branch_maps = [[name: '${ghprbActualCommit}'], [name: 'master']]
                 git_shallow_clone = false
             } else {
