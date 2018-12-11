@@ -45,6 +45,7 @@ from student.roles import CourseStaffRole
 from student.tests.factories import AdminFactory, UserFactory, SuperuserFactory
 from util.models import RateLimitConfiguration
 from util.testing import UrlResetMixin
+from six import text_type
 
 
 class EnrollmentTestMixin(object):
@@ -1413,3 +1414,50 @@ class UnenrollmentTest(EnrollmentTestMixin, ModuleStoreTestCase):
         url = reverse('unenrollment')
         headers = self.build_jwt_headers(submitting_user)
         return self.client.post(url, json.dumps(data), content_type='application/json', **headers)
+
+@ddt.ddt
+@unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Test only valid in lms')
+class UserRoleTest(ModuleStoreTestCase):
+    """
+    Tests the API call to list user roles.
+    """
+    USERNAME = "Bob"
+    EMAIL = "bob@example.com"
+    PASSWORD = "edx"
+
+    ENABLED_CACHES = ['default']
+
+    def setUp(self):
+        """ Create a course and user, then log in. """
+        super(UserRoleTest, self).setUp()
+        self.course = CourseFactory.create(emit_signals=True, org="org", course="course", run="run")
+        self.user = UserFactory.create(
+            username=self.USERNAME,
+            email=self.EMAIL,
+            password=self.PASSWORD,
+        )
+        self.client.login(username=self.USERNAME, password=self.PASSWORD)
+
+    def test_not_logged_in(self):
+        self.client.logout()
+        response = self.client.get(reverse('roles'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_roles_no_roles(self):
+        response = self.client.get(reverse('roles'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
+        self.assertEqual(response_data, [])
+
+    def test_roles(self):
+        role = CourseStaffRole(self.course.id)
+        role.add_users(self.user)
+        response = self.client.get(reverse('roles'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
+        expected_response = [{
+            'course_id': text_type(self.course.id),
+            'org': self.course.org,
+            'role': role.ROLE,
+        }]
+        self.assertEqual(response_data, expected_response)
