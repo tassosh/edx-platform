@@ -30,7 +30,7 @@ pipeline {
         XDIST_CONTAINER_SUBNET = credentials('XDIST_CONTAINER_SUBNET')
         XDIST_CONTAINER_SECURITY_GROUP = credentials('XDIST_CONTAINER_SECURITY_GROUP')
         XDIST_CONTAINER_TASK_NAME = "jenkins-worker-task"
-        XDIST_GIT_BRANCH = ghprbActualCommit
+        XDIST_GIT_BRANCH = "${ghprbActualCommit}"
     }
     stages {
         stage('Run Tests') {
@@ -101,7 +101,7 @@ pipeline {
             environment {
                 CODE_COV_TOKEN = credentials('CODE_COV_TOKEN')
                 TARGET_BRANCH = "origin/master"
-                CI_BRANCH = ghprbSourceBranch
+                CI_BRANCH = "${ghprbSourceBranch}"
                 SUBSET_JOB = "null" // Keep this variable until we can remove the $SUBSET_JOB path from .coveragerc
             }
             steps {
