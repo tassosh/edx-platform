@@ -128,7 +128,7 @@ pipeline {
                  expression { ghprbActualCommit != null }
             }
             environment {
-                TARGET_BRANCH = ghprbTargetBranch
+                TARGET_BRANCH = "${ghprbTargetBranch}""
             }
             steps {
                 sshagent(credentials: ['jenkins-worker'], ignoreMissing: true) {
